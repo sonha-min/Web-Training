@@ -61,7 +61,6 @@ Trong Git có 3 lớp chính:
   ```
 
 - Git config user name and email:
-
   - Local config -> applies only to the current repository.
 
     ```bash
@@ -92,15 +91,12 @@ Trong Git có 3 lớp chính:
 - Create new branch: `git checkout -b <branch name>` (`-B` create new branch or reset existing branch)
 
 - Make changes -> add + commit -> push:
-
   - `git add <files>` or `git add .`
 
   - `git commit -m '<your message>'`
 
   - `git push [-u] <remote name> <local branch>:<remote branch>`
-
     - `git push` -> push to upstream (it will raise error if upstream is not set)
-
       - Set upstream branch for current branch:
 
         ```bash
@@ -123,7 +119,6 @@ Trong Git có 3 lớp chính:
     - `git push origin :feature1` -> delete remote branch feature1 on remote origin
 
 - Pull code:
-
   - `git pull` = `git fetch` + `git merge/rebase`
 
     **Note:**
@@ -136,7 +131,6 @@ Trong Git có 3 lớp chính:
   - `git pull origin <branch name>` -> pull code from remote branch to local branch
 
   - `git fetch` -> `git merge <branch name>` or `git rebase <branch name>`
-
     - **Note:** Use `git rebase` only on private branches (when working alone). Do not use it on shared branches, or on your own branch if rebasing causes conflicts more than once.
 
 ### git merge vs git rebase
@@ -174,13 +168,11 @@ Example:
 ## Common commands
 
 - `git remote`:
-
   - `git remote -v`: view remote list
   - `git remote remove <remote name>`: remove remote
   - `git remote add <remote name> git@alias_name:git_repo_path`: add remote
 
 - `git stash`: temporarily store changes that are not yet committed (does not include untracked files by default) -> (First In, Last Out)
-
   - `git stash list`: view stashed list
   - `git stash apply`: apply changes, keeping code changes in stash
   - `git stash pop`: apply and pop code change from stash
@@ -189,7 +181,6 @@ Example:
     https://git-scm.com/docs/git-stash#_description
 
 - `git checkout`:
-
   - `git checkout -b <new_branch_name>`: create and switch to a new branch
   - `git checkout <branch_name>`: switch branch
   - `git checkout <commit_id>`: switch to specific commit
@@ -201,21 +192,22 @@ Example:
 - `git status` -> provide info: current branch, untracked files, modified files, files ready to commit, conflict.
 
 - `git log` -> view commit history
-
   - `git log <branch_name>`: view commit history of a specific branch
   - `git log <commit_id>`: view commit history from a specific commit
 
 - `git reset`:
-
   - `--mixed` (default): removes commit history, keeps code changes, but does not add changes to the index (staging area)
   - `--soft`: removes commit history, keeps code changes, and adds changes to the index (without untracked files)
   - `--hard`: removes all changes and commit history
 
 - `git config`:
-
   - `git config [scope] <key> <value>`: set config
   - `git config --unset <key>`: remove config
   - `git config --list`: view all config
+
+- `git branch --merged | grep -v "\*"`: view merged branches (except current branch)
+  - `git branch --merged | grep -v "\*" | xargs -n 1 git branch -d`: delete merged branches (except current branch)
+  - `git branch --no-merged`: view unmerged branches
 
 ## Notes
 
@@ -248,7 +240,6 @@ Example:
 ## GUI tool
 
 - Git cola: https://git-cola.github.io/
-
   - View the status of branches and supports full commands (commit, push, pull, etc.)
   - Review changes before committing
   - Easily commit parts of a file or revert changes
