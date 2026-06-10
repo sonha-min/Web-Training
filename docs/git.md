@@ -7,243 +7,243 @@
 
 ## Git Workflow
 
-- **🗂️ Working directory**: It’s your local workspace, where you make changes directly to files.
-- **🗒️ Staging area (Index)**: A middle layer that holds changes you’ve prepared to commit. You can selectively add or remove changes in the staging area before committing —> giving you precise control over what gets saved to version history.
+- **🗂️ Working directory**: Your local workspace where you make changes directly to files.
+- **🗒️ Staging area (Index)**: A middle layer that holds changes you've prepared to commit. You can selectively add or remove changes before committing, giving you precise control over what gets saved to version history.
 - **💻 Local repository**: A version of the repository stored on your local machine. It contains the full history of commits and allows you to work offline.
 - **🌐 Remote repository**: A version of the repository hosted on a server (e.g., GitHub, GitLab, Bitbucket). It enables collaboration by letting multiple people clone the code, push their changes, and pull updates from others.
 
-![Git Space](https://github.com/vosonha/RoR-Training/blob/main/lib/images/gitWorkflow.png)
+![Git Space](/lib/images/gitWorkflow.png)
 
-## Git branch
+## Git Branches
 
-Trong Git có 3 lớp chính:
-| Mức | Mô tả |
-| ---------------------------- | -------------------------------------------------------------- |
-| 🌐 **Remote branch** | Branch on the actual server (`github.com`, `gitlab.com`, `bitbucket` v.v.) |
-| 👀 **Remote-tracking branch** | `origin/main`, `origin/feature` on working directory |
-| 💻 **Local branch** | `main`, `feature` on working directory |
+Git has 3 main branch layers:
 
-## Steps for working on a project
+| Level | Description |
+| ---------------------------- | --------------------------------------------------------------------------- |
+| 🌐 **Remote branch** | Branch on the actual server (`github.com`, `gitlab.com`, `bitbucket`, etc.) |
+| 👀 **Remote-tracking branch** | Local references like `origin/main`, `origin/feature` |
+| 💻 **Local branch** | Branches you work on locally, e.g., `main`, `feature` |
 
-### Create SSH key
+## Steps for Working on a Project
 
-- Generate ssh key: https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent
+### Create SSH Key
+
+Generate an SSH key ([GitHub docs](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent)):
+
+```bash
+ssh-keygen -t ed25519 -C "<email or any name>"
+```
+
+Add the public key to GitHub: https://github.com/settings/keys
+
+Configure `~/.ssh/config`:
+
+```
+Host github_havs          # alias — used when cloning
+  HostName github.com     # actual domain of the git server
+  User git                # default, no need to change
+  IdentityFile ~/.ssh/havs/id_rsa_havs  # path to private key
+```
+
+**Note: Multiple SSH keys**
+
+- Generate separate keys and store them in sub-folders (e.g., `~/.ssh/havs/`, `~/.ssh/nus/ken/`, `~/.ssh/nus/tom/`).
+- Add each public key to the corresponding GitHub account.
+- Add a `Host` entry for each key in `~/.ssh/config`.
+
+### Clone Repo and Configure Git
+
+Clone the repo:
+
+```bash
+git clone git@github_havs:sonha-min/RoR-Training.git
+```
+
+Set your name and email:
+
+- **Local** (applies only to the current repository):
 
   ```bash
-  ssh-keygen -t ed25519 -C "<email or any name>"
+  git config --local user.name <name>
+  git config --local user.email <email>
   ```
 
-- Add public key to github: https://github.com/settings/keys
-
-- Config file `~/.ssh/config`:
+- **Global** (applies to all repositories on your machine):
 
   ```bash
-  Host github_havs => alias, choose as you like, it must be used when cloning code
-    HostName github.com => actual domain of the git server
-    User git => default, does not need to change
-    IdentityFile ~/.ssh/havs/id_rsa_havs => file private key pair path
+  git config --global user.name <name>
+  git config --global user.email <email>
   ```
 
-**Note:** Configure multiple ssh keys
-
-- Generate keys => should create sub folder for each key (e.g., `~/.ssh/havs/.`, `~/.ssh/nus/ken/.`, `~/.ssh/nus/tom/.`)
-
-- Add public keys to github accounts
-
-- Config file `~/.ssh/config`
-
-### Clone repo and configure git
-
-- Clone repo: `git clone <git-url>`
+- **Remove a global config value:**
 
   ```bash
-  git clone git@github_havs:sonha-min/RoR-Training.git
+  git config --global --unset <key>
   ```
 
-- Git config user name and email:
-  - Local config -> applies only to the current repository.
-
-    ```bash
-    git config --local user.name <name>
-    git config --local user.email <email>
-    ```
-
-  - Global config -> applies to all repositories on your machine.
-
-    ```bash
-    git config --global user.name <name>
-    git config --global user.email <email>
-    ```
-
-  - Remove global config:
-
-    ```bash
-      git config --global --unset <key>
-    ```
-
-- View config: `git config --list`
+- View all config: `git config --list`
 - Git settings folder: `.git/`
 
-### Working on branch
+### Working on a Branch
 
-- View local branches and current branch: `git branch` (`-a` to view all branches including remote branches, `-r` to view remote branches only)
+- **View branches:** `git branch` (`-a` for all branches including remote, `-r` for remote only)
 
-- Create new branch: `git checkout -b <branch name>` (`-B` create new branch or reset existing branch)
+- **Create a new branch:** `git checkout -b <branch-name>` (`-B` to create or reset an existing branch)
 
-- Make changes -> add + commit -> push:
-  - `git add <files>` or `git add .`
+- **Make changes → stage → commit → push:**
 
-  - `git commit -m '<your message>'`
+  ```bash
+  git add <files>       # or: git add .
+  git commit -m '<message>'
+  git push [-u] <remote> <local-branch>:<remote-branch>
+  ```
 
-  - `git push [-u] <remote name> <local branch>:<remote branch>`
-    - `git push` -> push to upstream (it will raise error if upstream is not set)
-      - Set upstream branch for current branch:
+  Push variants:
 
-        ```bash
-          git branch --set-upstream-to=<remote>/<branch>
-          git push -u <remote> <branch>
-        ```
+  | Command | Effect |
+  | ----------------------------------------------- | ------------------------------------------- |
+  | `git push` | Push to upstream (error if not set) |
+  | `git push origin` | Push to upstream on `origin` |
+  | `git push origin feature2` | Push local `feature2` to remote `feature2` |
+  | `git push origin feature1:feature2` | Push local `feature1` to remote `feature2` |
+  | `git push origin :feature1` | Delete remote branch `feature1` |
 
-      - Unset upstream branch for current branch:
+  Set / unset upstream:
 
-        ```bash
-          git branch --unset-upstream
-        ```
+  ```bash
+  git branch --set-upstream-to=<remote>/<branch>
+  git push -u <remote> <branch>   # shorthand: set upstream and push
 
-    - `git push origin` -> push to remote branch on remote origin
+  git branch --unset-upstream     # remove upstream tracking
+  ```
 
-    - `git push origin feature2` -> push local branch feature2 to remote branch feature2 on remote origin
+- **Pull code:**
 
-    - `git push origin feature1:feature2` -> push local branch feature1 to remote branch feature2 on remote origin => ko khuyến khích
+  `git pull` = `git fetch` + `git merge` (or `git rebase`)
 
-    - `git push origin :feature1` -> delete remote branch feature1 on remote origin
+  > **Note:** `git pull` raises an error if no upstream branch is set. If upstream is set, it pulls from the tracked remote branch.
 
-- Pull code:
-  - `git pull` = `git fetch` + `git merge/rebase`
+  ```bash
+  git pull                          # pull from upstream
+  git pull origin <branch-name>     # pull from a specific remote branch
+  ```
 
-    **Note:**
+  Or fetch first, then merge/rebase manually:
 
-    ```bash
-      - raise error if local branch is not set upstream branch.
-      - if local branch is set upstream branch, it will pull code from remote branch to local branch.
-    ```
+  ```bash
+  git fetch
+  git merge <branch-name>   # or: git rebase <branch-name>
+  ```
 
-  - `git pull origin <branch name>` -> pull code from remote branch to local branch
-
-  - `git fetch` -> `git merge <branch name>` or `git rebase <branch name>`
-    - **Note:** Use `git rebase` only on private branches (when working alone). Do not use it on shared branches, or on your own branch if rebasing causes conflicts more than once.
+  > **Note:** Use `git rebase` only on private branches (when working alone). Avoid it on shared branches or when rebasing would cause repeated conflicts.
 
 ### git merge vs git rebase
 
-https://blog.git-init.com/differences-between-git-merge-and-rebase-and-why-you-should-care/
+Reference: https://blog.git-init.com/differences-between-git-merge-and-rebase-and-why-you-should-care/
 
-Example:
+Starting history:
 
-- History commit:
+```
+A---B---C  (main)
+    \
+     D---E---F  (feature)
+```
 
+**`git merge feature`** (run from `main`):
+
+```
+A---B---C-------G   (main)
+    \          /
+     D---E---F     (feature)
+```
+
+`G` is a merge commit that ties both histories together.
+
+**`git rebase main`** (run from `feature`):
+
+```
+A---B---C---D'---E'---F'  (feature)
+```
+
+`D'`, `E'`, `F'` are replayed commits — no merge commit is created, and history stays linear.
+
+## Common Commands
+
+- **`git remote`** — manage remote connections:
+  - `git remote -v` — view remote list
+  - `git remote add <name> git@<alias>:<repo-path>` — add a remote
+  - `git remote remove <name>` — remove a remote
+
+- **`git stash`** — temporarily store uncommitted changes ([docs](https://git-scm.com/docs/git-stash#_description)); does not include untracked files by default (LIFO order):
+  - `git stash list` — view stash list
+  - `git stash apply` — apply changes, keeping them in the stash
+  - `git stash pop` — apply and remove the latest stash entry
+  - `git stash drop` — remove a specific stash entry
+  - `git stash clear` — remove all stash entries
+
+- **`git checkout`**:
+  - `git checkout -b <new-branch>` — create and switch to a new branch
+  - `git checkout <branch>` — switch to a branch
+  - `git checkout <commit-id>` — switch to a specific commit (detached HEAD)
+  - `git checkout <commit-id>|<branch> <file>` — restore a file to a specific commit or branch version
+  - `git checkout .` — restore all files to the last committed version
+  - `git checkout -- <file>` — same as `git checkout HEAD <file>`
+  - `git checkout -` — switch to the previous branch
+
+- **`git status`** — show current branch, untracked/modified files, staged changes, and conflicts.
+
+- **`git log`** — view commit history:
+  - `git log <branch>` — history for a specific branch
+  - `git log <commit-id>` — history from a specific commit
+
+- **`git reset`**:
+  - `--mixed` (default) — removes commit(s), keeps changes unstaged
+  - `--soft` — removes commit(s), keeps changes staged
+  - `--hard` — removes commit(s) and discards all changes
+
+- **`git config`**:
+  - `git config [scope] <key> <value>` — set a config value
+  - `git config --unset <key>` — remove a config value
+  - `git config --list` — view all config values
+
+- **Manage merged branches:**
   ```bash
-    A---B---C  (main)
-        \
-          D---E---F  (feature)
+  git branch --merged | grep -v "\*"                              # list merged branches (excluding current)
+  git branch --merged | grep -v "\*" | xargs -n 1 git branch -d  # delete them
+  git branch --no-merged                                          # list unmerged branches
   ```
-
-- `git merge feature` (from `main`)
-
-  ```bash
-    A---B---C-------G   (main)
-        \          /
-          D---E---F     (feature)
-  ```
-
-  `-> G is a merge commit`
-
-- `git rebase main` (from `feature`)
-
-  ```bash
-    A---B---C---D'---E'---F'  (feature)
-  ```
-
-  `-> D', E', F' is the new commit history for feature branch, does not create a merge commit`
-
-## Common commands
-
-- `git remote`:
-  - `git remote -v`: view remote list
-  - `git remote remove <remote name>`: remove remote
-  - `git remote add <remote name> git@alias_name:git_repo_path`: add remote
-
-- `git stash`: temporarily store changes that are not yet committed (does not include untracked files by default) -> (First In, Last Out)
-  - `git stash list`: view stashed list
-  - `git stash apply`: apply changes, keeping code changes in stash
-  - `git stash pop`: apply and pop code change from stash
-  - `git stash drop`: remove a specific stash
-  - `git stash clear`: remove all stash
-    https://git-scm.com/docs/git-stash#_description
-
-- `git checkout`:
-  - `git checkout -b <new_branch_name>`: create and switch to a new branch
-  - `git checkout <branch_name>`: switch branch
-  - `git checkout <commit_id>`: switch to specific commit
-  - `git checkout <commit_id>|<branch_name> <file_name>`: restore file to a specific commit or branch version
-  - `git checkout .`: restore all files to the last committed version (in working directory)
-  - `git checkout -- <file_name>` == `git checkout HEAD <file_name>`: Restore file to the last committed version (in working directory)
-  - `git checkout -`: switch to the previous branch
-
-- `git status` -> provide info: current branch, untracked files, modified files, files ready to commit, conflict.
-
-- `git log` -> view commit history
-  - `git log <branch_name>`: view commit history of a specific branch
-  - `git log <commit_id>`: view commit history from a specific commit
-
-- `git reset`:
-  - `--mixed` (default): removes commit history, keeps code changes, but does not add changes to the index (staging area)
-  - `--soft`: removes commit history, keeps code changes, and adds changes to the index (without untracked files)
-  - `--hard`: removes all changes and commit history
-
-- `git config`:
-  - `git config [scope] <key> <value>`: set config
-  - `git config --unset <key>`: remove config
-  - `git config --list`: view all config
-
-- `git branch --merged | grep -v "\*"`: view merged branches (except current branch)
-  - `git branch --merged | grep -v "\*" | xargs -n 1 git branch -d`: delete merged branches (except current branch)
-  - `git branch --no-merged`: view unmerged branches
 
 ## Notes
 
-- Luôn kiểm tra trạng thái của repository bằng `git status` trước khi thực hiện commit hoặc push.
-- Sử dụng `git log` để xem lịch sử commit và kiểm tra các thay đổi đã được lưu.
-- Khi làm việc với nhiều người, hãy thường xuyên pull code để tránh conflict.
-- Nếu xảy ra conflict, hãy giải quyết trước khi tiếp tục làm việc.
+- Always run `git status` before committing or pushing to review what has changed.
+- Use `git log` to inspect commit history and verify saved changes.
+- When collaborating, pull frequently to reduce the chance of conflicts.
+- If a conflict occurs, resolve it before continuing any other work.
 
-### Resolve conflict (conflict xảy ra khi merge/rebase mà có code trong 1 file khác version):
+### Resolving Conflicts
 
-- Lựa chọn:
+Conflicts occur when merging or rebasing causes the same file to have diverging versions. You have three options:
 
-  ```bash
-    - Bỏ code mình (1)
-    - Bỏ code người ta (2)
-    - Giữ cả 2 (có thể modify) (3)
-  ```
+1. Keep your changes (discard theirs)
+2. Keep their changes (discard yours)
+3. Keep both (edit as needed)
 
-=> Đọc code tự tin thì chọn (1) or (2) or (3). Không tự tin thì kiếm người tạo ra commit conflict với mình để discuss và giải quyết.
+If you are unsure, find the person whose commit caused the conflict and discuss the correct resolution together.
 
-- Giải quyết:
+**Steps to resolve:**
 
-  ```bash
-    - Sửa file(s) bị conflict
-    - git add <file(s)>
-    - git commit -m <message>
-    - git push
-  ```
+```bash
+# 1. Edit the conflicting file(s) to resolve the conflict markers
+# 2. Stage the resolved files
+git add <file(s)>
+# 3. Commit the resolution
+git commit -m "<message>"
+# 4. Push
+git push
+```
 
-## GUI tool
+## GUI Tools
 
-- Git cola: https://git-cola.github.io/
-  - View the status of branches and supports full commands (commit, push, pull, etc.)
-  - Review changes before committing
-  - Easily commit parts of a file or revert changes
-
-- gitk: view commit history (https://git-scm.com/docs/gitk)
-
-- Git cheat sheet: https://education.github.com/git-cheat-sheet-education.pdf
+- **Git Cola** ([git-cola.github.io](https://git-cola.github.io/)) — view branch status, supports full commands (commit, push, pull, etc.), review changes before committing, and stage parts of a file.
+- **gitk** ([docs](https://git-scm.com/docs/gitk)) — visual commit history browser.
+- **Git cheat sheet** — [education.github.com/git-cheat-sheet-education.pdf](https://education.github.com/git-cheat-sheet-education.pdf)
