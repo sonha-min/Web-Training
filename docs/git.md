@@ -5,6 +5,12 @@
 - Git keeps **track of the entire history of changes**, making it easy to **go back to previous versions** if needed.
 - **Repository**: Stores the full history of commits and tracks all changes made to the codebase.
 
+## Using Git
+
+- The command line
+- Code editors & IDEs (e.g., VS Code)
+- Graphical user interfaces ([GUI tools](#gui-tools)) like Git Cola, gitk, GitKraken, SourceTree, etc.
+
 ## Git Workflow
 
 - **🗂️ Working directory**: Your local workspace where you make changes directly to files.
@@ -23,6 +29,36 @@ Git has 3 main branch layers:
 | 🌐 **Remote branch** | Branch on the actual server (`github.com`, `gitlab.com`, `bitbucket`, etc.) |
 | 👀 **Remote-tracking branch** | Local references like `origin/main`, `origin/feature` |
 | 💻 **Local branch** | Branches you work on locally, e.g., `main`, `feature` |
+
+## Configuring Git
+
+Git settings are stored in config files at different scopes:
+  - **System**: Applies to all users and repositories on the machine (e.g., `/etc/gitconfig`).
+  - **Global**: Applies to all repositories for the current user (e.g., `~/.gitconfig`).
+  - **Local**: Applies only to the current repository (e.g., `.git/config`).
+
+Git looks for config values in the order: local → global → system. If a value is set at multiple levels, the one at the highest precedence (local > global > system) will be used.
+
+```bash
+# Example: Set VS Code as the default editor for Git commit messages
+# --wait: waiting for your editor to close the file before Git continues
+git config --global core.editor "code --wait"
+# Open the global config file in your default editor
+git config --global -e
+
+# View all config values (system, global, local)
+git config --list
+git config --list --system # view only system config
+git config --list --global # view only global config
+git config --list --local # view only local config
+
+# Set global username and email (used for commits across all repositories)
+git config --global user.name "havs"
+git config --global user.email "vosonha1997@gmail.com"
+
+# See more config options: https://git-scm.com/docs/git-config
+git config --help
+```
 
 ## Steps for Working on a Project
 
@@ -246,4 +282,8 @@ git push
 
 - **Git Cola** ([git-cola.github.io](https://git-cola.github.io/)) — view branch status, supports full commands (commit, push, pull, etc.), review changes before committing, and stage parts of a file.
 - **gitk** ([docs](https://git-scm.com/docs/gitk)) — visual commit history browser.
+- **GitKraken** ([gitkraken.com](https://www.gitkraken.com/)) — visual commit history, drag-and-drop branch management, built-in code editor, and integration with GitHub, GitLab, Bitbucket.
+- **SourceTree** ([sourcetreeapp.com](https://www.sourcetreeapp.com/)) — visual commit history, branch management, and integration with GitHub, GitLab, Bitbucket.
+
+## Resources
 - **Git cheat sheet** — [education.github.com/git-cheat-sheet-education.pdf](https://education.github.com/git-cheat-sheet-education.pdf)
