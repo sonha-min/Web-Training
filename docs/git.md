@@ -74,7 +74,7 @@ Add the public key to GitHub: https://github.com/settings/keys
 
 Configure `~/.ssh/config`:
 
-```
+```bash
 Host github_havs                       # alias
   HostName github.com                  # actual domain or IP address
   User git                             # SSH username (default is "git" for GitHub/GitLab/Bitbucket)
@@ -92,6 +92,25 @@ Host github_havs                       # alias
 - Generate separate keys and store them in sub-folders (e.g., `~/.ssh/havs/`, `~/.ssh/nus/ken/`, `~/.ssh/nus/tom/`).
 - Add each public key to the corresponding GitHub account.
 - Add a `Host` entry for each key in `~/.ssh/config`.
+
+**SSH agent commands:**
+```bash
+# Start the SSH agent in the background
+eval "$(ssh-agent -s)"
+
+# Add your SSH private key to the agent
+ssh-add ~/.ssh/havs/id_ed25519
+# Test the SSH connection to GitHub
+ssh -T git@github.com
+
+# List all keys currently added to the SSH agent
+ssh-add -l
+
+# Delete all keys from the SSH agent
+ssh-add -D
+# Delete a specific key from the SSH agent
+ssh-add -d ~/.ssh/havs/id_ed25519
+```
 
 ### Clone Repo and Configure Git
 
