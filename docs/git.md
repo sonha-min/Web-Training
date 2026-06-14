@@ -75,10 +75,16 @@ Add the public key to GitHub: https://github.com/settings/keys
 Configure `~/.ssh/config`:
 
 ```
-Host github_havs          # alias — used when cloning
-  HostName github.com     # actual domain of the git server
-  User git                # default, no need to change
-  IdentityFile ~/.ssh/havs/id_rsa_havs  # path to private key
+Host github_havs                       # alias
+  HostName github.com                  # actual domain or IP address
+  User git                             # SSH username (default is "git" for GitHub/GitLab/Bitbucket)
+  IdentityFile ~/.ssh/havs/id_ed25519  # path to your private SSH key
+
+  IdentitiesOnly yes    # forces SSH to use the specified key, preventing fallback to other keys
+  AddKeysToAgent yes    # automatically adds the key to the SSH Agent
+  UseKeychain yes       # (macOS) stores the passphrase in the keychain
+  ForwardAgent yes      # allows forwarding the SSH agent to other servers
+  Port 22               # default SSH port is 22, change if your server uses a different port
 ```
 
 **Note: Multiple SSH keys**
