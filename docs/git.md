@@ -18,7 +18,7 @@
 - **💻 Local repository**: A version of the repository stored on your local machine. It contains the full history of commits and allows you to work offline.
 - **🌐 Remote repository**: A version of the repository hosted on a server (e.g., GitHub, GitLab, Bitbucket). It enables collaboration by letting multiple people clone the code, push their changes, and pull updates from others.
 
-![Git Space](/lib/images/gitWorkflow.png)
+![Git Space](https://github.com/sonha-min/Web-Training/blob/main/lib/images/gitWorkflow.png)
 
 ## Git Branches
 
@@ -234,6 +234,7 @@ A---B---C---D'---E'---F'  (feature)
   - `git remote -v` — view remote list
   - `git remote add <name> git@<alias>:<repo-path>` — add a remote
   - `git remote remove <name>` — remove a remote
+  - `git remote set-url <name> git@<alias>:<repo-path>` — change remote URL
 
 - **`git stash`** — temporarily store uncommitted changes ([docs](https://git-scm.com/docs/git-stash#_description)); does not include untracked files by default (LIFO order):
   - `git stash list` — view stash list
