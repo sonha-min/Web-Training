@@ -20,7 +20,9 @@
 
 ## 4. [React Router & API Integration](./docs/react/react.md)
 
-## Recommended FE Directory Structure (React + Vite + TypeScript + Tailwind CSS)
+## Recommended Directory Structure
+
+### FE (React + Vite + TypeScript + Tailwind CSS)
 
 **Project root:**
 
@@ -40,9 +42,9 @@ frontend/
 └── vite.config.ts             # Vite build/dev server configuration (plugins, aliases...)
 ```
 
-The structure below builds on the common `components/` + `pages/` split, with a few folders added that most production React apps need: `api/`, `hooks/`, `context/`, `types/`, `utils/`, `lib/`, and `constants/`.
-
 **`src/` breakdown:**
+
+The structure below builds on the common `components/` + `pages/` split, with a few folders added that most production React apps need: `api/`, `hooks/`, `context/`, `types/`, `utils/`, `lib/`, and `constants/`.
 
 ```
 frontend/src/
