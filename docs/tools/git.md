@@ -50,7 +50,7 @@ git config --global -e
 git config --list
 git config --list --system # view only system config
 git config --list --global # view only global config
-git config --list --local # view only local config
+git config --list --local  # view only local config
 
 # Set global username and email (used for commits across all repositories)
 git config --global user.name "havs"
@@ -236,13 +236,6 @@ A---B---C---D'---E'---F'  (feature)
   - `git remote remove <name>` — remove a remote
   - `git remote set-url <name> git@<alias>:<repo-path>` — change remote URL
 
-- **`git stash`** — temporarily store uncommitted changes ([docs](https://git-scm.com/docs/git-stash#_description)); does not include untracked files by default (LIFO order):
-  - `git stash list` — view stash list
-  - `git stash apply` — apply changes, keeping them in the stash
-  - `git stash pop` — apply and remove the latest stash entry
-  - `git stash drop` — remove a specific stash entry
-  - `git stash clear` — remove all stash entries
-
 - **`git checkout`**:
   - `git checkout -b <new-branch>` — create and switch to a new branch
   - `git checkout <branch>` — switch to a branch
@@ -263,6 +256,13 @@ A---B---C---D'---E'---F'  (feature)
   - `--soft` — removes commit(s), keeps changes staged
   - `--hard` — removes commit(s) and discards all changes
 
+- **`git stash`** — temporarily store uncommitted changes ([docs](https://git-scm.com/docs/git-stash#_description)); does not include untracked files by default (LIFO order):
+  - `git stash list` — view stash list
+  - `git stash apply` — apply changes, keeping them in the stash
+  - `git stash pop` — apply and remove the latest stash entry
+  - `git stash drop` — remove a specific stash entry
+  - `git stash clear` — remove all stash entries
+
 - **`git config`**:
   - `git config [scope] <key> <value>` — set a config value
   - `git config --unset <key>` — remove a config value
@@ -271,7 +271,7 @@ A---B---C---D'---E'---F'  (feature)
 - **Manage merged branches:**
   ```bash
   git branch --merged | grep -v "\*"                              # list merged branches (excluding current)
-  git branch --merged | grep -v "\*" | xargs -n 1 git branch -d  # delete them
+  git branch --merged | grep -v "\*" | xargs -n 1 git branch -d   # delete them
   git branch --no-merged                                          # list unmerged branches
   ```
 

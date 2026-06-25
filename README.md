@@ -28,18 +28,20 @@
 
 ```
 frontend/
-├── public/                    # Static assets served as-is (favicon, robots.txt, static images...)
-├── src/                       # Application source code (see breakdown below)
-├── .gitignore                 # Files/folders Git should ignore (node_modules, dist, .env...)
-├── README.md                  # Project documentation
-├── eslint.config.js           # ESLint rules for linting the codebase
-├── index.html                 # HTML entry point Vite injects the bundled app into
-├── package.json               # Project metadata, dependencies & npm scripts
-├── package-lock.json          # Locked dependency versions for reproducible installs
-├── tsconfig.json              # Base TypeScript config, references the app/node configs below
-├── tsconfig.app.json          # TypeScript config for the app source (src/)
-├── tsconfig.node.json         # TypeScript config for Node-context files (e.g. vite.config.ts)
-└── vite.config.ts             # Vite build/dev server configuration (plugins, aliases...)
+├── public/                 # Static assets served as-is (favicon, robots.txt, static images...)
+├── src/                    # Application source code (see breakdown below)
+├── .gitignore              # Files/folders Git should ignore (node_modules, dist, .env...)
+├── .prettierignore         # Files/folders Prettier should ignore (node_modules, dist, .env...)
+├── .prettierrc.json        # Prettier formatting rules for consistent code style
+├── README.md               # Project documentation
+├── eslint.config.js        # ESLint rules for linting the codebase
+├── index.html              # HTML entry point Vite injects the bundled app into
+├── package.json            # Project metadata, dependencies & npm scripts
+├── package-lock.json       # Locked dependency versions for reproducible installs
+├── tsconfig.json           # Base TypeScript config, references the app/node configs below
+├── tsconfig.app.json       # TypeScript config for the app source (src/)
+├── tsconfig.node.json      # TypeScript config for Node-context files (e.g. vite.config.ts)
+└── vite.config.ts          # Vite build/dev server configuration (plugins, aliases...)
 ```
 
 **`src/` breakdown:**
@@ -71,7 +73,7 @@ frontend/src/
 │   │   └── ProfilePage.tsx
 │   └── home/
 │       └── HomePage.tsx
-├── routes/                   # Routing configuration (e.g., React Router)
+├── routes/                    # Routing configuration (e.g., React Router)
 │   └── AppRoutes.tsx
 ├── api/                       # API service layer, grouped by resource (uses the `lib/axios` client)
 │   ├── userService.ts
