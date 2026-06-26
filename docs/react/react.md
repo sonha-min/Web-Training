@@ -7,7 +7,7 @@ In React, the foundational naming rule is to use **PascalCase for components** a
 | Code entity | Casing style | Example |
 | --- | --- | --- |
 | Components | `PascalCase` | `<UserProfile />` |
-| Files & folders | `PascalCase` or `kebab-case` | `UserProfile.tsx` or `user-profile.tsx` |
+| Files & folders | `PascalCase` or `kebab-case` | `UserProfile.tsx` or `index.ts` |
 | Props & state | `camelCase` | `isActive`, `userId` |
 | Hooks | `camelCase` (prefixed with `use`) | `useAuth()` |
 | Functions | `camelCase` | `fetchData()` |
