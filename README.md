@@ -12,13 +12,15 @@
 
 # React-Training
 
+## [React Naming Conventions](./docs/react/react.md#naming-conventions)
+
 ## 1. Getting Started with React + Components
 
 ## 2. React State & Events
 
 ## 3. Effects & API Calls
 
-## 4. [React Router & API Integration](./docs/react/react.md)
+## 4. [React Router & API Integration](./docs/react/react.md#react-router)
 
 ## Recommended Directory Structure
 
