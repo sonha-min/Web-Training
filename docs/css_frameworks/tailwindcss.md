@@ -482,3 +482,125 @@ State variants:
 ```
 
 [Reference](https://www.webdevultra.com/articles/tailwindcss-cheatsheet-css-equivalents)
+
+## 3. Design System Rules
+
+**CRITICAL**: No inline styles. Always use TailwindCSS with design tokens.
+
+### 1. Colors
+
+Use design tokens defined in `src/styles/colors.css` (e.g. `text-primary`, `bg-primary-500`, `border-neutral-100`) instead of raw hex values or default Tailwind palette colors. Tokens map to CSS variables, so a theme/brand color change updates every usage in one place.
+
+```tsx
+// ❌ WRONG — magic value, breaks on rebrand, no dark-mode support
+<div style={{ color: '#C77DFF' }}>Hello</div>
+<div className="text-purple-400">Hello</div>
+
+// ✅ CORRECT — references the design token
+<div className="text-primary">Hello</div>
+<div className="bg-primary-500 border border-neutral-100">Card</div>
+```
+
+### 2. Typography
+
+Use the type scale defined in `src/styles/fontSize.css` (e.g. `text-display-lg`, `text-heading-md`, `text-body-sm`) instead of raw Tailwind size utilities like `text-2xl`. The scale encodes both font size and line-height for each role, keeping headings/body text consistent across the app.
+
+```tsx
+// ❌ WRONG — arbitrary size, no semantic meaning
+<h1 className="text-3xl font-bold">Page Title</h1>
+
+// ✅ CORRECT — semantic, consistent across the app
+<h1 className="text-heading-md font-bold">Page Title</h1>
+<p className="text-body-sm">Supporting text</p>
+```
+
+### 3. Conditional classes
+
+Use `twMerge` (from `tailwind-merge`), optionally paired with `clsx`, instead of string concatenation or template literals. Plain concatenation can produce duplicate/conflicting utilities (e.g. two `p-*` classes) where the last one wins by source order, not by intent — `twMerge` resolves conflicts deterministically by utility group.
+
+```tsx
+// ❌ WRONG — string concatenation, conflicting classes silently overridden
+const className = `p-4 ${isActive ? 'p-6 bg-primary' : ''}`;
+
+// ✅ CORRECT
+import { twMerge } from 'tailwind-merge';
+
+const className = twMerge('p-4', isActive && 'p-6 bg-primary');
+```
+
+### 4. Spacing
+
+Use `gap-*` on a flex/grid parent to space sibling elements; reserve `padding-*` for space *inside* a component's own boundary (between its border and its content). Mixing margins on children for layout spacing makes spacing depend on sibling order and breaks when items are reordered or wrapped.
+
+```tsx
+// ❌ WRONG — margin-based spacing, fragile when children are reordered
+<div className="flex">
+  <Card className="mr-4" />
+  <Card className="mr-4" />
+  <Card />
+</div>
+
+// ✅ CORRECT — gap for sibling spacing, padding for internal spacing
+<div className="flex gap-4">
+  <Card className="p-4" />
+  <Card className="p-4" />
+  <Card className="p-4" />
+</div>
+```
+
+### 5. Component variants
+
+Use `class-variance-authority` (`cva`) or a similar variant map instead of chained ternaries/`if` blocks for components with multiple visual states (size, variant, state). This keeps every valid combination declarative and type-checked, rather than scattered across conditional expressions.
+
+```tsx
+// ❌ WRONG — nested ternaries, hard to extend or type-check
+const className = `btn ${
+  variant === 'primary' ? 'bg-primary text-white' : 'bg-neutral-10 text-primary'
+} ${size === 'lg' ? 'px-6 py-3' : 'px-4 py-2'}`;
+
+// ✅ CORRECT
+import { cva } from 'class-variance-authority';
+
+const button = cva('rounded-md font-medium', {
+  variants: {
+    variant: {
+      primary: 'bg-primary text-white',
+      secondary: 'bg-neutral-10 text-primary',
+    },
+    size: {
+      sm: 'px-4 py-2',
+      lg: 'px-6 py-3',
+    },
+  },
+});
+```
+
+### 6. Avoid arbitrary values
+
+Prefer scale utilities (`gap-4`, `text-heading-md`, `rounded-lg`) over arbitrary-value syntax (`gap-[17px]`, `text-[15px]`, `rounded-[3px]`). Arbitrary values bypass the design system's scale, making the UI inconsistent and harder to theme.
+
+```tsx
+// ❌ WRONG — one-off value not on the spacing/type scale
+<div className="gap-[17px] text-[15px]">
+
+// ✅ CORRECT — pulled from the existing scale/tokens
+<div className="gap-4 text-body-sm">
+```
+
+### 7. Don't use `@apply` to recreate components
+
+Don't reach for `@apply` to bundle utility classes into a custom CSS class for a component — that reintroduces the maintenance cost utility-first CSS is meant to avoid (a second place to look for styles, naming to invent, no co-location with markup). Build a reusable React component instead, and keep the utilities in JSX.
+
+```css
+/* ❌ WRONG — re-creates a "Card" component in CSS */
+.card {
+  @apply rounded-lg shadow-md p-6 bg-white;
+}
+```
+
+```tsx
+// ✅ CORRECT — reusable component, utilities stay in markup
+function Card({ children }: { children: React.ReactNode }) {
+  return <div className="rounded-lg shadow-md p-6 bg-white">{children}</div>;
+}
+```
