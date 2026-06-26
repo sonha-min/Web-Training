@@ -1,3 +1,66 @@
+## Naming Conventions
+
+In React, the foundational naming rule is to use **PascalCase for components** and **camelCase for variables, props, hooks, and functions**. Following these community standards keeps a project readable, maintainable, and clearly distinguishes standard HTML tags from custom React elements.
+
+### Overview of React cases
+
+| Code entity | Casing style | Example |
+| --- | --- | --- |
+| Components | `PascalCase` | `<UserProfile />` |
+| Files & folders | `PascalCase` or `kebab-case` | `UserProfile.tsx` or `user-profile.tsx` |
+| Props & state | `camelCase` | `isActive`, `userId` |
+| Hooks | `camelCase` (prefixed with `use`) | `useAuth()` |
+| Functions | `camelCase` | `fetchData()` |
+| Constants | `SCREAMING_SNAKE_CASE` | `API_TIMEOUT` |
+
+### Components and contexts
+
+- **Always use PascalCase**: every word must start with a capital letter (e.g. `TodoList`, `AuthContext`).
+- **Avoid lowercase starts**: React treats lowercase elements as native HTML tags (like `<div>` or `<button>`). A custom component starting with a lowercase letter will fail to render as a component.
+
+```jsx
+// ✅ Good
+function UserProfile() { ... }
+const AuthContext = createContext(null);
+
+// ❌ Bad - React treats this as a native HTML tag, not a component
+function userProfile() { ... }
+```
+
+### Files and folders
+
+- **Match component files**: give the file the exact same `PascalCase` name as the component inside it (e.g. `UserCard.tsx`).
+- **Non-component files**: use `camelCase` for utilities, services, or helper files (e.g. `formatDate.ts`, `apiService.ts`).
+- **Alternative folder approach**: some teams prefer `kebab-case` (dash-separated) for folders and non-component assets to avoid case-sensitivity issues across different operating systems (e.g. `/components/button-group/`).
+
+### Props and state
+
+- **Standard properties**: use `camelCase` for regular variables, state variables, and props (e.g. `const [isLoading, setIsLoading] = useState(false)`).
+- **Boolean naming**: prefix boolean props and state values with verbs like `is`, `has`, or `should` to signify their binary nature (e.g. `isLoggedIn`, `hasError`, `shouldRender`).
+
+```jsx
+function UserCard({ userId, isActive, hasNotifications }) {
+  const [isLoading, setIsLoading] = useState(false);
+  ...
+}
+```
+
+### Functions and event handlers
+
+- **Action triggers (props)**: props that pass a callback function downward should mirror native DOM events and begin with the `on` prefix (e.g. `onClick`, `onUpdateData`).
+- **Handling triggers (implementation)**: the actual functions that process those actions inside a component should begin with the `handle` prefix (e.g. `handleClick`, `handleUpdateData`).
+
+```jsx
+function SubmitButton({ onSubmit }) {
+  const handleClick = () => {
+    // local logic before/after notifying the parent
+    onSubmit();
+  };
+
+  return <button onClick={handleClick}>Submit</button>;
+}
+```
+
 ## React Router
 
 React Router is the standard routing library for React. It lets you map URLs to components so your app can have multiple "pages" without a full page reload.
