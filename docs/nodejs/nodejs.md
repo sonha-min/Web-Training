@@ -161,12 +161,47 @@ const [users, products] = await Promise.all([
 ]);
 ```
 
-Related helpers worth knowing:
+##### Comparison: `Promise.all()` vs `Promise.allSettled()` vs `Promise.race()` vs `Promise.any()`
 
-- `Promise.all()` — fulfills when **all** promises fulfill; rejects as soon as one rejects
-- `Promise.allSettled()` — waits for all promises to settle and reports each outcome
-- `Promise.race()` — settles with the **first** promise to settle
-- `Promise.any()` — fulfills with the first fulfilled promise; rejects only if all reject
+All four take an iterable of promises and return a single promise, but they differ in *when* that promise settles and *what* it settles with:
+
+| Method | Fulfills when… | Rejects when… | Fulfilled value | Typical use case |
+| --- | --- | --- | --- | --- |
+| `Promise.all()` | **all** promises fulfill | **any one** rejects (fail-fast) | Array of values, in input order | Several required operations that must all succeed (e.g. load users **and** products) |
+| `Promise.allSettled()` | **all** promises settle (never rejects) | Never | Array of `{ status, value \| reason }` objects | Independent operations where you want every outcome, even failures (e.g. batch jobs, notifications) |
+| `Promise.race()` | the **first** promise settles with fulfillment | the **first** promise settles with rejection | Value of the first settled promise | Timeouts — race a request against a timer; first settlement wins, success **or** failure |
+| `Promise.any()` | the **first** promise fulfills | **all** promises reject | Value of the first fulfilled promise | Redundant sources — take the fastest success and ignore failures (e.g. query mirror servers) |
+
+The key differences in one sentence each: `all()` is *all-or-nothing*; `allSettled()` is *tell me everything*; `race()` is *first settlement wins, good or bad*; `any()` is *first success wins*.
+
+Here is the same set of inputs run through each method:
+
+```js
+const ok = ms => new Promise(res => setTimeout(() => res(`ok ${ms}`), ms));
+const fail = ms => new Promise((_, rej) => setTimeout(() => rej(new Error(`fail ${ms}`)), ms));
+
+// One of the three inputs rejects:
+await Promise.all([ok(100), fail(200), ok(300)]);
+// ✗ throws Error('fail 200') after 200 ms — one rejection fails the whole thing
+
+await Promise.allSettled([ok(100), fail(200), ok(300)]);
+// ✓ after 300 ms:
+// [
+//   { status: 'fulfilled', value: 'ok 100' },
+//   { status: 'rejected', reason: Error('fail 200') },
+//   { status: 'fulfilled', value: 'ok 300' },
+// ]
+
+await Promise.race([ok(100), fail(200), ok(300)]);
+// ✓ 'ok 100' after 100 ms — first to settle wins
+await Promise.race([fail(100), ok(200)]);
+// ✗ throws Error('fail 100') — race doesn't care if the winner rejected
+
+await Promise.any([fail(100), ok(200), ok(300)]);
+// ✓ 'ok 200' after 200 ms — rejections are skipped
+await Promise.any([fail(100), fail(200)]);
+// ✗ throws AggregateError('All promises were rejected') — only if every input rejects
+```
 
 #### The code is much simpler to read
 
