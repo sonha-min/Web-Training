@@ -28,6 +28,8 @@
 
 ## 2. [Express.js](./docs/nodejs/expressjs.md)
 
+## 3. [Prisma](./docs/nodejs/prisma.md)
+
 ## Recommended Directory Structure
 
 ### FE (React + Vite + TypeScript + Tailwind CSS)
