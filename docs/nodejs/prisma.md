@@ -614,6 +614,96 @@ const result = await prisma.post.deleteMany({
 await prisma.post.deleteMany();
 ```
 
+### What SQL does this generate?
+
+Seeing the underlying SQL helps explain *why* Prisma behaves the way it does — especially around errors and partial failures. The queries below are illustrative PostgreSQL; the exact SQL Prisma's query engine emits can differ slightly by provider and version, but the shape is representative.
+
+**Creating records**
+
+```sql
+-- prisma.user.create({ data: { email, name } })
+INSERT INTO "public"."User" ("email", "name")
+VALUES ($1, $2)
+RETURNING "id", "email", "name";
+```
+
+```sql
+-- prisma.user.createMany({ data: [...], skipDuplicates: true })
+INSERT INTO "public"."User" ("email", "name")
+VALUES ($1, $2), ($3, $4)
+ON CONFLICT DO NOTHING;
+```
+
+Without `skipDuplicates`, the `ON CONFLICT DO NOTHING` clause is simply omitted — a single conflicting row then aborts the whole multi-row `INSERT`, so none of the rows in that call are committed.
+
+A nested write (`user.create` with `posts: { create: [...] }`) is not one SQL statement — Prisma wraps it in an implicit transaction and runs it as a sequence: insert the `User` row, read back its generated `id`, then insert each `Post` row using that `id` as `authorId`.
+
+**Reading data**
+
+```sql
+-- prisma.user.findMany()
+SELECT "id", "email", "name" FROM "public"."User";
+```
+
+```sql
+-- prisma.user.findUnique({ where: { email } })
+SELECT "id", "email", "name" FROM "public"."User" WHERE "email" = $1 LIMIT 1;
+```
+
+`findUniqueOrThrow`/`findFirstOrThrow` run the exact same query as their non-throwing counterparts — the "throw if missing" behavior is enforced by Prisma Client in application code after the query returns zero rows, not by the SQL itself.
+
+```sql
+-- prisma.post.findFirst({ where: { published: true }, orderBy: { id: 'desc' } })
+SELECT "id", "title", "content", "published", "authorId"
+FROM "public"."Post"
+WHERE "published" = $1
+ORDER BY "id" DESC
+LIMIT 1;
+```
+
+**Updating data**
+
+```sql
+-- prisma.user.update({ where: { email }, data: { name } })
+UPDATE "public"."User" SET "name" = $1 WHERE "email" = $2
+RETURNING "id", "email", "name";
+```
+
+```sql
+-- prisma.post.updateMany({ where: { published: false }, data: { published: true } })
+UPDATE "public"."Post" SET "published" = $1 WHERE "published" = $2;
+```
+
+```sql
+-- prisma.user.upsert({ where: { email }, update, create })
+INSERT INTO "public"."User" ("email", "name")
+VALUES ($1, $2)
+ON CONFLICT ("email") DO UPDATE SET "name" = EXCLUDED."name"
+RETURNING "id", "email", "name";
+```
+
+PostgreSQL, CockroachDB, and SQLite support this atomic `ON CONFLICT` upsert in a single round trip. Providers without native upsert support get it emulated by Prisma as a transaction (check-then-write), which is more exposed to race conditions under concurrent writes.
+
+```sql
+-- prisma.post.update({ where: { id }, data: { views: { increment: 1 } } })
+UPDATE "public"."Post" SET "views" = "views" + 1 WHERE "id" = $1;
+```
+
+**Deleting data**
+
+```sql
+-- prisma.user.delete({ where: { email } })
+DELETE FROM "public"."User" WHERE "email" = $1
+RETURNING "id", "email", "name";
+```
+
+```sql
+-- prisma.post.deleteMany({ where: { published: false } })
+DELETE FROM "public"."Post" WHERE "published" = $1;
+```
+
+`delete` first checks that a matching row exists (throwing `P2025` if not); `deleteMany` has no such check, so a `WHERE` that matches nothing just deletes zero rows without error.
+
 ### Reference
 
 - [CRUD](https://www.prisma.io/docs/orm/prisma-client/queries/crud)
@@ -768,6 +858,92 @@ const users = await prisma.user.findMany({
 ```
 
 > Note: you cannot use `select` and `include` at the same level in the same query — choose one.
+
+### What SQL does this generate?
+
+**Filtering**
+
+```sql
+-- where: { title: { contains: 'prisma', mode: 'insensitive' }, views: { gte: 100 }, authorId: { in: [1,2,3] } }
+SELECT "id", "title", "content", "published", "authorId"
+FROM "public"."Post"
+WHERE "title" ILIKE '%' || $1 || '%'
+  AND "views" >= $2
+  AND "authorId" IN ($3, $4, $5);
+```
+
+`contains` with `mode: 'insensitive'` compiles to `ILIKE` on PostgreSQL (a case-insensitive `LIKE`); providers without `ILIKE` get an equivalent construct instead (e.g. wrapping both sides in `LOWER()`).
+
+```sql
+-- where: { OR: [...], NOT: { published: false } }
+SELECT "id", "title", "content", "published", "authorId"
+FROM "public"."Post"
+WHERE ("title" ILIKE '%' || $1 || '%' OR "content" ILIKE '%' || $2 || '%')
+  AND NOT ("published" = $3);
+```
+
+```sql
+-- where: { posts: { some: { published: true } } }
+SELECT "id", "email", "name"
+FROM "public"."User" AS "t0"
+WHERE EXISTS (
+  SELECT 1 FROM "public"."Post" AS "t1"
+  WHERE "t1"."authorId" = "t0"."id" AND "t1"."published" = $1
+);
+```
+
+**Sorting**
+
+```sql
+-- orderBy: { name: 'asc' }
+SELECT "id", "email", "name" FROM "public"."User" ORDER BY "name" ASC;
+```
+
+```sql
+-- orderBy: [{ published: 'desc' }, { title: 'asc' }]
+SELECT "id", "title", "content", "published", "authorId"
+FROM "public"."Post"
+ORDER BY "published" DESC, "title" ASC;
+```
+
+**Pagination**
+
+```sql
+-- skip: 20, take: 10, orderBy: { id: 'asc' }
+SELECT "id", "title", "content", "published", "authorId"
+FROM "public"."Post"
+ORDER BY "id" ASC
+LIMIT 10 OFFSET 20;
+```
+
+```sql
+-- cursor: { id: lastSeenId }, skip: 1, take: 10, orderBy: { id: 'asc' }
+SELECT "id", "title", "content", "published", "authorId"
+FROM "public"."Post"
+WHERE "id" >= $1
+ORDER BY "id" ASC
+LIMIT 10 OFFSET 1;
+```
+
+The `OFFSET 20` form has to walk past 20 rows on every call, and that cost grows with the offset. The cursor form instead seeks directly to `"id" >= $1` using the primary key index, then only skips past the single cursor row — its cost stays roughly flat no matter how deep into the dataset you page.
+
+**Selecting & including relations**
+
+```sql
+-- select: { email: true, name: true }
+SELECT "email", "name" FROM "public"."User";
+```
+
+```sql
+-- include: { posts: true }
+-- Prisma's default strategy runs two queries and joins the results in the application layer
+SELECT "id", "email", "name" FROM "public"."User";
+SELECT "id", "title", "content", "published", "authorId"
+FROM "public"."Post"
+WHERE "authorId" IN ($1, $2 /* ...one id per user from the first query */);
+```
+
+With `relationLoadStrategy: 'join'` (PostgreSQL, CockroachDB, SQLite), Prisma instead issues a single query using a `LEFT JOIN LATERAL` and reassembles the nested objects from the flat rows — one round trip instead of two, at the cost of a wider result set.
 
 ### Reference
 
