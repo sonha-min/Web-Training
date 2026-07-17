@@ -505,6 +505,33 @@ await prisma.user.createMany({
 });
 ```
 
+#### A note on `createMany` with duplicates and `skipDuplicates`
+
+Suppose the `User` table already has `dave@prisma.io`. You call:
+
+```ts
+const result = await prisma.user.createMany({
+  data: [
+    { email: 'dave@prisma.io', name: 'Duplicate Dave' }, // already exists in the DB
+    { email: 'grace@prisma.io', name: 'Grace' },          // new
+    { email: 'grace@prisma.io', name: 'Grace 2' },        // duplicate within the same array
+  ],
+  skipDuplicates: true,
+});
+
+console.log(result.count); // 1 — only the first "Grace" row was actually created
+```
+
+What actually happens:
+
+- The `dave@prisma.io` row is **skipped** because that email already exists in the database.
+- Of the two `grace@prisma.io` rows in the same `data` array, only the **first** is inserted; the second is skipped too, because by the time the database processes it, `grace@prisma.io` "already exists" — the first row was just inserted as part of the same statement.
+- `result.count` only counts rows that were **actually created** (1 here) — it does not count, and gives no information about, the rows that were skipped.
+- If you need to know exactly which rows were skipped and why, `createMany` doesn't expose that — you'd have to validate beforehand or query afterward to diff the results.
+- If you **omit** `skipDuplicates: true`, the whole call throws `P2002` as soon as it hits the first violating row, and **none of the rows in that batch get created** — including the otherwise-valid ones. Because `createMany` inserts every row in a single SQL statement, without `skipDuplicates` a single bad row fails the entire statement (all-or-nothing).
+
+> Not every database supports `skipDuplicates` (SQL Server and MongoDB currently don't) — check the Prisma docs for your provider before relying on this behavior.
+
 You can also create related records in the same call — a *nested write* (covered more under Relations):
 
 ```ts
@@ -518,6 +545,29 @@ await prisma.user.create({
   },
 });
 ```
+
+#### A note on unique constraint violations in `create`
+
+Creating a record with a value that duplicates a `@unique` field (e.g. an email that's already taken) is not silently ignored or overwritten — Prisma throws a `PrismaClientKnownRequestError` with code `P2002` as soon as the `INSERT` hits the constraint. The new record is **not created**, and if you don't catch the error it propagates as an unhandled exception (or a 500 if you're inside an API handler).
+
+```ts
+import { Prisma } from '@prisma/client';
+
+try {
+  await prisma.user.create({
+    data: { email: 'dave@prisma.io', name: 'Duplicate Dave' }, // this email already exists
+  });
+} catch (e) {
+  if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+    // e.meta.target tells you which field(s) caused the violation, e.g. ['email']
+    console.error(`Unique constraint failed on: ${e.meta?.target}`);
+  } else {
+    throw e;
+  }
+}
+```
+
+`e.meta.target` is especially useful when a model has several `@unique`/`@@unique` constraints — it tells you exactly which field collided, so you can surface a precise error instead of a generic one.
 
 ### Reading data
 
@@ -592,6 +642,21 @@ await prisma.post.update({
 });
 ```
 
+#### A note on `updateMany` and `upsert` with unique constraints
+
+Unlike `createMany`, `updateMany` has **no** `skipDuplicates` option. If a bulk update would make one or more rows violate a unique constraint (e.g. setting the same email on multiple users), the entire statement fails with `P2002` and **no rows get updated** — even the ones that wouldn't have violated anything on their own:
+
+```ts
+// If this would give users #1 and #2 the same email,
+// the whole updateMany fails — neither user gets updated
+await prisma.user.updateMany({
+  where: { id: { in: [1, 2] } },
+  data: { email: 'same@prisma.io' },
+});
+```
+
+`upsert` only ever touches a **single** record, so there's no "some rows skipped" scenario. There is a race-condition concern though: if two `upsert` calls for the same unique key run concurrently, behavior depends on the provider — PostgreSQL, SQLite, and CockroachDB use an atomic SQL-level upsert (`INSERT ... ON CONFLICT ... DO UPDATE`), so this is safe. Providers without native upsert support have it emulated by Prisma as find-then-create/update, which can still race under concurrent writes.
+
 ### Deleting data
 
 `delete` removes a single record by a unique field:
@@ -612,6 +677,29 @@ const result = await prisma.post.deleteMany({
 
 // Delete everything in the table
 await prisma.post.deleteMany();
+```
+
+#### A note on deleting records that don't exist
+
+`delete` (singular) requires the record to exist — if the `where` matches nothing, it throws `P2025` ("Record not found") instead of silently doing nothing:
+
+```ts
+import { Prisma } from '@prisma/client';
+
+try {
+  await prisma.user.delete({ where: { email: 'doesnotexist@prisma.io' } });
+} catch (e) {
+  if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2025') {
+    console.error('No user found to delete.');
+  }
+}
+```
+
+`deleteMany`, on the other hand, **never errors** when nothing matches — it just returns `{ count: 0 }`:
+
+```ts
+const result = await prisma.post.deleteMany({ where: { id: -1 } });
+console.log(result.count); // 0 — no error thrown
 ```
 
 ### What SQL does this generate?
@@ -766,6 +854,31 @@ const users = await prisma.user.findMany({
 });
 ```
 
+#### A note on `some`, `every`, `none` for one-to-many relation filters
+
+These three operators are easy to get wrong because `every` handles the empty case by formal logic rather than intuition:
+
+```ts
+// some: user has AT LEAST ONE published post
+const withPublished = await prisma.user.findMany({
+  where: { posts: { some: { published: true } } },
+});
+
+// every: ALL of the user's posts are published
+const allPublished = await prisma.user.findMany({
+  where: { posts: { every: { published: true } } },
+});
+
+// none: the user has NO published posts
+const noPublished = await prisma.user.findMany({
+  where: { posts: { none: { published: true } } },
+});
+```
+
+> Gotcha: `every` returns `true` for users **with no posts at all** — an empty set vacuously satisfies "every element matches". If you want to exclude users who have no posts yet, add an extra condition, e.g. `posts: { some: {} }`.
+
+Also, `mode: 'insensitive'` (used in the `contains` example above) is only supported on PostgreSQL and MongoDB. On MySQL, case-insensitive matching depends on the column/database collation (many MySQL collations are already case-insensitive by default), so `mode` isn't needed there and has no effect.
+
 ### Sorting
 
 Use `orderBy` to sort results. Specify `'asc'` or `'desc'`:
@@ -784,6 +897,18 @@ const posts = await prisma.post.findMany({
     { published: 'desc' },
     { title: 'asc' },
   ],
+});
+```
+
+#### A note on sorting by relation count
+
+You can also sort by how many related records a row has (e.g. show the user with the most posts first) using `orderBy` with `_count`:
+
+```ts
+const users = await prisma.user.findMany({
+  orderBy: {
+    posts: { _count: 'desc' },
+  },
 });
 ```
 
@@ -814,6 +939,14 @@ const nextPage = await prisma.post.findMany({
 ```
 
 A negative `take` paginates backwards from the cursor.
+
+#### A note on offset vs cursor pagination performance
+
+With `skip` (offset pagination), the database still has to scan through and discard every row before the current page, even though it never returns them — the further into the dataset you page, the larger `OFFSET` gets, and the slower the query becomes. This is the "deep pagination" problem. With `cursor`, the database uses an index (typically on `id`, already indexed as the primary key) to seek straight to the right spot instead of scanning past prior rows — so cursor pagination stays fast regardless of how deep you go.
+
+Offset pagination is also more fragile under concurrent writes: if rows are inserted or deleted between two calls, the page can shift (a row appearing twice, or getting skipped). Cursor pagination is more stable because it anchors to a specific value (the last-seen `id`) rather than a numeric position.
+
+> Recommendation: use offset (`skip`/`take`) for small lists with a "page 1, 2, 3…" UI; use cursor for large lists, infinite scroll, or public APIs.
 
 ### Selecting & including relations
 
@@ -858,6 +991,33 @@ const users = await prisma.user.findMany({
 ```
 
 > Note: you cannot use `select` and `include` at the same level in the same query — choose one.
+
+**`omit`** is the inverse of `select` — instead of naming the fields you want, you name the fields you want to *exclude*, and get everything else back. It's most useful for hiding a sensitive field (like a password hash) without having to enumerate every other field on the model:
+
+```ts
+// Return every scalar field of User except `password`
+// (assumes a `password` field exists on the User model)
+const user = await prisma.user.findUnique({
+  where: { id: 1 },
+  omit: { password: true },
+});
+```
+
+You can also set a default `omit` once, globally, when you instantiate the client — handy for a field you never want to accidentally leak:
+
+```ts
+const prisma = new PrismaClient({
+  omit: {
+    user: {
+      password: true,
+    },
+  },
+});
+
+// Every query against `user` now omits `password` unless overridden per-call
+```
+
+> Note: you cannot combine `omit` and `select` at the same level — they express opposite intents (deny-list vs. allow-list), so pick one. `omit` can be combined with `include`, since `include` only concerns relations, not scalar fields.
 
 ### What SQL does this generate?
 
@@ -950,6 +1110,7 @@ With `relationLoadStrategy: 'join'` (PostgreSQL, CockroachDB, SQLite), Prisma in
 - [Filtering and sorting](https://www.prisma.io/docs/orm/prisma-client/queries/filtering-and-sorting)
 - [Pagination](https://www.prisma.io/docs/orm/prisma-client/queries/pagination)
 - [Select fields](https://www.prisma.io/docs/orm/prisma-client/queries/select-fields)
+- [Excluding fields (omit)](https://www.prisma.io/docs/orm/prisma-client/queries/excluding-fields)
 - [Relation queries](https://www.prisma.io/docs/orm/prisma-client/queries/relation-queries)
 - [Prisma Client API reference — where](https://www.prisma.io/docs/orm/reference/prisma-client-reference#filter-conditions-and-operators)
 
